@@ -1,13 +1,52 @@
-for i in novelRange:
-    f = open('World Teacher (Prologue-Chapter 130)', 'a+')
-    response = requests.get(url + str(i))
-    soup = bs(response.text, 'html.parser')
-    ch = soup.select('span["itemprop"="title"]')[-1].text
-    novel = '\n%s\n=======\n' % (ch) 
-    vung_doc_p = soup.select('div.vung_doc > p')
-    content = '\n'.join([p.text for p in vung_doc_p])
-    novel += content.replace(chr(160), ' ') + '\n'
-    print('Chapter %s processed.' % (str(i)))
-    f.write(novel)
-    f.close()
+#!/usr/bin/python3
 
+import re
+import requests
+import sys
+from getopt import getopt
+from bs4 import BeautifulSoup as bs
+
+def getNovel():
+    # TODO: Parse sys.argv options using getopt
+    # TODO: Use novel's main page URL to get the rest of the neccessary information: latestChapter, baseURL, novelName, 
+    response = request.get(url)
+    soup = bs(response.text, 'html.parser')
+
+    # Get latest chapter number
+    latestChapterHREF = soup.select('div.chapter-list > div.row > span > a:first-child')['href']
+    ptn = re.compile('.*_([0-9]*)$')
+    latestChapter = re.findall(ptn, latestChapterHREF)
+    novelRange = range(1, latestChapter+1)
+
+    # Get base chapter URL
+    ptn = re.compile('(.*_)[0-9]*$')
+    baseURL = re.findall(ptn, latestChapterHREF)
+
+    # Get name of novel
+    ptn = re.compile('/novel/(.*)$')
+    novelName = re.findall(ptn, url)
+
+    # Create/Truncate document
+    fname = '%s_ch1-%i.txt' % (novelName, latestChapter)
+    with open(fname, 'w') as f:
+        f.write('=====\n%s\n======\n=====\n\n' % (novelName))
+
+    # Get all chapters
+    for i in novelRange:
+        response = requests.get(url + str(i))
+        soup = bs(response.text, 'html.parser')
+        
+        chapterName = soup.select('div.rdfa-breadcrumb > div > p').text
+        chapter = '\n%s\n=======\n' % (chapterName) 
+        
+        textBody = soup.select('div.vung_doc > p')
+        content = '\n'.join([p.text for p in textBody])
+        chapter += content.replace(chr(160), ' ') + '\n'
+        print('%s processed.' % (chapter))
+        f = open(fname, 'a+')
+        f.write(chapter)
+        f.close()
+    print('Task completed.')
+
+if __name__ == '__main__':
+    getNovel(sys.argv[1:])
