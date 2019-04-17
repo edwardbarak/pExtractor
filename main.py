@@ -6,6 +6,22 @@ import sys
 from getopt import getopt
 from bs4 import BeautifulSoup as bs
 
+def extract(url, *args):
+    response = request.get(url)
+    if response.status_code != 200:
+        raise('Could not pull from URL. Status code: %s' % response.status_code)
+    soup = bs(response.text, 'html.parser')
+    extraction = []
+    for arg in args:
+        if isinstance(arg, list):
+            extraction.append(soup.select(arg[0])[arg[1])
+        elif isinstance(arg, str):
+            extraction.append(soup.select(arg))
+        else:
+            raise('Selectors must be formatted as str(selector) OR [str(selector), str(attr)]')
+    return extraction
+
+
 def getNovel():
     # TODO: Parse sys.argv options using getopt
     # TODO: Use novel's main page URL to get the rest of the neccessary information: latestChapter, baseURL, novelName, 
@@ -13,7 +29,8 @@ def getNovel():
     soup = bs(response.text, 'html.parser')
 
     # Get latest chapter number
-    latestChapterHREF = soup.select('div.chapter-list > div.row > span > a:first-child')['href']
+    # latestChapterHREF = soup.select('div.chapter-list > div.row > span > a:first-child')['href']
+    latestChapterHREF = extract(url, ['div.chapter-list > div.row > span > a:first-child', 'href'], 
     ptn = re.compile('.*_([0-9]*)$')
     latestChapter = re.findall(ptn, latestChapterHREF)
     novelRange = range(1, latestChapter+1)
